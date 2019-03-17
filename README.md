@@ -1,31 +1,8 @@
-# Kubernetes Training Examples
+# Kubernetes Workshop on CLT 2019
 
-    Ondrej Sika <ondrej@ondrejsika.com>
-    https://github.com/ondrejsika/kubernetes-training-examples
+Fork of [ondrejsika/kubernetes-training-example](https://github.com/ondrejsika/kubernetes-training-examples)
 
-Code examples for my Kubernetes Training.
-
-## About Course
-
-### Kubernetes training in Czech Republic
-
-- [ondrej-sika.cz/skoleni/kubernetes](https://ondrej-sika.cz/skoleni/kubernetes?_s=gh-dte)
-- [skoleni-kubernetes.cz](https://skoleni-docker.cz/?_s=gh-dte)
-
-### Docker training in Europe
-
-- [ondrej-sika.com/training/kubernetes](https://ondrej-sika.com/training/kubernetes?_s=gh-dte)
-
-### Any Questions?
-
-Write me mail to <ondrej@ondrejsika.com>
-
-
-## Useful Links
-
-- Kubernetes Cheatsheet - https://kubernetes.io/docs/reference/kubectl/cheatsheet/
-- Minikube & Hyper-V - https://medium.com/@JockDaRock/minikube-on-windows-10-with-hyper-v-6ef0f4dc158c
-
+---
 
 ## Install
 
@@ -67,7 +44,7 @@ echo "source <(minikube completion bash)" >> ~/.bashrc
 ### Start Minikube
 
 ```
-minikube start --kubernetes-version v1.13.1
+minikube start --kubernetes-version v1.13.2
 ```
 
 ### Dashboard
@@ -126,35 +103,11 @@ See:
 kubectl exec -ti multi-container-pod bash
 ```
 
-### Expose Pod (Create Service)
-
-```
-kubectl expose pod simple-hello-world
-kubectl expose pod multi-container-pod --type=NodePort
-```
-
-Connect your services
-
-- http://127.0.0.1:8001/api/v1/namespaces/default/services/simple-hello-world/proxy/
-- http://127.0.0.1:8001/api/v1/namespaces/default/services/multi-container-pod/proxy/
-
-Or using `minikube service` (just for NodePort)
-
-```
-minikube service multi-container-pod
-```
-
 ### Delete Pod
 
 ```
-kubectl delete po/simple-hello-world
-kubectl delete po/multi-container-pod
-```
-
-and delete services (creaded by `kubectl expose`)
-
-```
-kubectl delete svc/simple-hello-world svc/multi-container-pod
+kubectl delete -f 01_pod.yml
+kubectl delete -f 02_pod.yml
 ```
 
 ### Create Replica Set
@@ -169,20 +122,6 @@ kubectl apply -f 03_01_replica_set.yml
 kubectl get replicasets
 kubectl get rs
 kubectl get rs,po
-```
-
-### Expose Replica Set (Create Service)
-
-```
-kubectl expose rs hello-world-rs --type=NodePort
-```
-
-See: http://127.0.0.1:8001/api/v1/namespaces/default/services/hello-world-rs/proxy/
-
-Or using `minikube service` (just for NodePort)
-
-```
-minikube service hello-world-rs
 ```
 
 ### Update Replica Set
@@ -200,10 +139,7 @@ kubectl apply -f 03_02_replica_set.yml
 ### Delete Replica Set
 
 ```
-kubectl delete rs/hello-world-rs
-
-# and the service
-kubectl delete svc/hello-world-rs
+kubectl delete -f 03_01_replica_set.yml
 ```
 
 ### Create Deployment
@@ -252,7 +188,7 @@ See: http://127.0.0.1:8001/api/v1/namespaces/default/services/hello-world/proxy/
 ### Delete Deployment
 
 ```
-kubectl delete deploy/hello-world
+kubectl delete -f 04_01_deployment.yml
 # and service
 kubectl delete svc/hello-world
 ```
@@ -293,10 +229,10 @@ kubectl get all
 ### Delete Service
 
 ```
-kubectl delete svc/hello-world-nodeport
-kubectl delete svc/hello-world-clusterip
+kubectl apply -f 05_clusterip_service.yml
+kubectl apply -f 06_nodeport_service.yml
 # and deployment
-kubectl delete deploy/hello-world
+kubectl delete -f 04_01_deployment.yml
 ```
 
 ### Deploy Application (Multiple Deployments and Services)
@@ -358,29 +294,6 @@ See: http://127.0.0.1:8001/api/v1/namespaces/counter/services/counter/proxy/
 kubectl delete ns/counter
 ```
 
-### Wordpress Example
-
-Start
-
-```
-kubectl create namespace wp
-kubectl -n wp apply -f 09_wordpress.yml
-```
-
-See: http://127.0.0.1:8001/api/v1/namespaces/wp/services/wordpress/proxy/
-
-Open
-
-```
-minikube -n wp service wordpress
-```
-
-Stop & delete
-
-```
-kubectl delete namespace wp
-```
-
 ## Ingress
 
 ### Enable Ingress on Minikube
@@ -414,363 +327,44 @@ See:
 - http://nginx.192.168.99.100.xip.io
 - http://apache.192.168.99.100.xip.io
 
-## ConfigMaps & Secrets
 
-### Create Secrets
+### Delete it
 
 ```
-kubectl create secret generic my-secret \
-    --from-file=key=key.txt \
-    --from-literal=token=secrettoken
+kubectl delete -f webservers.yml
+kubectl delete -f 10_ingress.yml
 ```
 
-### Create secret form config file
+---
 
-```
-kubectl apply -f 11_secret.yml
-```
-
-### Get Values
-
-Base64 encoded
-
-```
-echo $(kubectl get secret my-secret -o jsonpath="{.data.key}")
-echo $(kubectl get secret my-secret -o jsonpath="{.data.token}")
-```
-
-Decoded
-
-```
-echo $(kubectl get secret my-secret -o jsonpath="{.data.key}" | base64 --decode)
-echo $(kubectl get secret my-secret -o jsonpath="{.data.token}" | base64 --decode)
-```
-
-### Create ConfigMap
-
-```
-kubectl apply -f 12_config_map.yml
-```
-
-### Example usage
-
-```
-kubectl apply -f 13_secret_example.yml
-```
-
-### RBAC
-
-### Create cluster admin
-
-```
-kubectl apply -f 14_admin.yml
-```
-
-### Create kubeconfig for admin
-
-Export actual config
-
-```
-kubectl config view --raw > config
-```
-
-Get token:
-
-```
-kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep admin-user | awk '{print $1}')
-```
-
-Set token to user:
-
-```
-kubectl --kubeconfig=config config set-credentials admin --token=<token>
-```
-
-Set new user to context:
-
-```
-kubectl --kubeconfig=config config set-context --user=admin --cluster=minikube admin
-```
-
-Use new user to context:
-
-```
-kubectl --kubeconfig=config config use-context admin
-```
-
-And try:
-
-```
-kubectl --kubeconfig=config get nodes,svc
-```
-
-### Create pod reader
-
-```
-kubectl apply -f 15_read.yml
-```
-
-Add to user to config and change context user
-
-```
-kubectl --kubeconfig=config config set-credentials read --token=<token>
-kubectl --kubeconfig=config config set-context --user=read <context>
-```
-
-## Helm
-
-### Install Helm Client
-
-Docs <https://github.com/helm/helm/blob/master/docs/install.md>
-
-Or oneliner for Linux:
-
-```
-curl https://raw.githubusercontent.com/helm/helm/master/scripts/get | bash
-```
-
-on Mac:
-
-```
-brew install kubernetes-helm
-```
-
-and on Windows:
-
-```
-choco install kubernetes-helm
-```
-
-### Bash Completion
-
-```
-source <(helm completion bash)
-```
-
-## Init Helm & Tiller
-
-```
-helm init
-```
-
-If you have Tiller installed on your cluster, you can init helm client only.
-
-```
-helm init --client-only
-```
-
-### Create Service Account for Tiller
-
-```
-kubectl create serviceaccount --namespace kube-system tiller
-kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
-kubectl patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}'
-```
-
-### Search Package
-
-```
-helm search db
-helm search redis
-```
-
-### Inspect Package
-
-```
-helm inspect stable/redis
-```
-
-### Install Package
-
-```
-helm install stable/redis
-helm install stable/redis --name redis
-```
-
-Or dry run (see the Kubernetes config)
-
-```
-helm install stable/redis --dry-run --debug
-helm install stable/redis --dry-run --debug --name redis
-```
-
-### List Installed Packages
-
-```
-helm ls
-helm ls -q
-```
-
-List all (not jutst DEPLOYED)
-
-```
-helm ls --all
-helm ls -a -q
-```
-
-### Status of Package
-
-```
-helm status redis
-```
-
-### Inspect Values
-
-```
-helm inspect values stable/redis
-```
-
-### Delete Package
-
-```
-helm del redis
-helm del redis --purge
-```
-
-Delete all & purge
-
-```
-helm del --purge $(helm ls -a -q)
-```
-
-### Helm Repositiories
-
-#### List repositories
-
-```
-helm repo list
-```
-
-#### Add repository
-
-```
-helm repo add ondrejsika https://helm.oxs.cz
-
-helm repo update
-helm search ondrejsika
-```
-
-#### Install ondrejsika/simple-image
-
-Inspect Package
-
-```
-helm inspect ondrejsika/simple-image
-```
-
-Install with values in args
-
-```
-helm install ondrejsika/simple-image --name hello-world --set ingress.hosts={hello-world.192.168.99.100.xip.io} --set replicaCount=4
-```
+Do you like this workshop?
 
-Install with values file
+Tweet about it with @ondrejsika and #clt2019
 
-```
-helm install ondrejsika/simple-image --name nginx --values simple-image-nginx-values.yml
-helm install ondrejsika/simple-image --name apache --values simple-image-apache-values.yml
-```
-
-Install with values file and values args 
-
-```
-helm install ondrejsika/simple-image --name nginx2 --values simple-image-nginx-values.yml --set ingress.hosts={nginx2.192.168.99.100.xip.io}
-```
-
-
-### Own Helm Package
-
-```
-helm create hello-world
-```
-
-```
-cd hello-world
-tree
-```
-
-```
-cat << EOF > templates/configMap.yaml
-apiVersion: v1
-data:
-  nginx.conf: |
-    events { worker_connections  1024;}
-    http { server { listen 80; location / {
-        return 200 "Nginx Hello World";
-    } } }
-kind: ConfigMap
-metadata:
-  name: nginx-config
-EOF
-```
-
-Add volume to deployment
-
-```
-volumes:
-  - name: config
-    configMap:
-      name: nginx-config
-```
-
-```
-volumeMounts:
-  - name: config
-    mountPath: /etc/nginx/nginx.conf
-    subPath: nginx.conf
-```
+Thanks!
 
-#### See Template
+---
 
-```
-helm template .
-helm template . --name hello --set ingress.enabled=true --set ingress.hosts={hello.192.168.99.100.xip.io}  --set ingress.paths={/}
-```
-
-#### Install
-
-```
-helm install . --name hello --set ingress.enabled=true --set ingress.hosts={hello.192.168.99.100.xip.io}  --set ingress.paths={/}
-```
-
-#### Build Package
-
-```
-cd ..
-helm package hello-world
-```
-
-### Create own repository
-
-```
-mkdir my-repo
-cp hello-world-0.1.0.tgz my-repo/
-helm repo index my-repo/ --url https://dr.h4y.cz/my-repo/
-```
-
-Publish it!
-
-#### Use it
-
-Delete previous deployment
-
-```
-helm del --purge hello
-```
-
-Add repo
+Do you want more? Try my
 
-```
-helm repo add my-repo https://dr.h4y.cz/my-repo
-```
+## Kubernetes Training in Dresden
 
-Install package
+- Theory introduction to Kubernetes
+- How to install Minikube and kubectl
+- Description of Kubernetes components
+- Deployment to Kubernetes
+- Working with permissions in the Kubernetes cluster
+- Theory introduction to Helm packages
+- Installation/Deployment using Helm
+- Creating a custom Helm package
 
-```
-helm install my-repo/hello-world --name hello --set ingress.enabled=true --set ingress.hosts={hello.192.168.99.100.xip.io} --set ingress.paths={/}
-```
+I also offer training for:
 
+- Git
+- Gitlab CI
+- Docker
+- Ansible
 
-## Links
+For further informations, write me email to <ondrej@sika-kraml.de>.
 
-- Logging - https://kubernetes.io/docs/concepts/cluster-administration/logging/
+Training are also possibe in German. For German courses wite to <schulungen@sika-kraml.de>
